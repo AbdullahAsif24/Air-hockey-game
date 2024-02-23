@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Hockey (4 Players)</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+        }
+
+        canvas {
+            border: 2px solid #fff;
+        }
+
+        #scores {
+            margin-top: 20px;
+            font-size: 24px;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="scores">Team 1: 0 | Team 2: 0</div>
+    <canvas id="airHockeyCanvas" width="800" height="400"></canvas>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const canvas = document.getElementById('airHockeyCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoresElement = document.getElementById('scores');
+
+            const paddleWidth = 20;
+            const paddleHeight = 100;
+            const paddleSpeed = 8;
+
+            const players = [
+                //comment lines for increasing and decreasing players
+                { x: 10, y: canvas.height / 4 - paddleHeight / 2, dy: 0, color: '#00f', controls: ['ArrowUp', 'ArrowDown'], team: 1, score: 0 },
+                // { x: 10, y: (3 * canvas.height) / 4 - paddleHeight / 2, dy: 0, color: '#f00', controls: ['KeyA', 'KeyD'], team: 1, score: 0 },
+                { x: canvas.width - paddleWidth - 10, y: canvas.height / 4 - paddleHeight / 2, dy: 0, color: '#0f0', controls: ['KeyK', 'KeyL'], team: 2, score: 0 },
+                // { x: canvas.width - paddleWidth - 10, y: (3 * canvas.height) / 4 - paddleHeight / 2, dy: 0, color: '#ff0', controls: ['KeyG', 'KeyH'], team: 2, score: 0 },
+            ];
+
+            const puck = {
+                x: canvas.width / 2,
+                y: canvas.height / 2,
+                dx: 10,
+                dy: 10,
+                radius: 10,
+                color: '#fff',
+            };
+
+            function drawPaddle(x, y, width, height, color) {
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, width, height);
+            }
+
+            function drawPuck(x, y, radius, color) {
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.closePath();
+            }
+
+            function draw() {
+                // Clear the canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Draw paddles and puck
+                players.forEach(player => drawPaddle(player.x, player.y, paddleWidth, paddleHeight, player.color));
+                drawPuck(puck.x, puck.y, puck.radius, puck.color);
+
+                // Update puck position
+                puck.x += puck.dx;
+                puck.y += puck.dy;
+
+                // Reflect puck off top and bottom walls
+                if (puck.y - puck.radius < 0 || puck.y + puck.radius > canvas.height) {
+                    puck.dy = -puck.dy;
+                }
+
+                // Check for collisions with paddles
+                players.forEach(player => {
+                    if (
+                        puck.x - puck.radius < player.x + paddleWidth &&
+                        puck.x + puck.radius > player.x &&
+                        puck.y > player.y &&
+                        puck.y < player.y + paddleHeight
+                    ) {
+                        puck.dx = -puck.dx;
+                    }
+                });
+
+                // Move paddles based on controls
+                document.addEventListener('keydown', function (event) {
+                    players.forEach(player => {
+                        if (player.controls.includes(event.code)) {
+                            if (event.code === player.controls[0] && player.y > 0) {
+                                player.dy = -paddleSpeed;
+                            } else if (event.code === player.controls[1] && player.y + paddleHeight < canvas.height) {
+                                player.dy = paddleSpeed;
+                            }
+                        }
+                    });
+                });
+
+                document.addEventListener('keyup', function (event) {
+                    players.forEach(player => {
+                        if (player.controls.includes(event.code)) {
+                            player.dy = 0;
+                        }
+                    });
+                });
+
+                // Update paddle positions
+                players.forEach(player => player.y += player.dy);
+
+                // Check for goals
+                if (puck.x - puck.radius < 0) {
+                    updateScore(2); // Team 2 scores
+                    resetPuck();
+                } else if (puck.x + puck.radius > canvas.width) {
+                    updateScore(1); // Team 1 scores
+                    resetPuck();
+                }
+
+                // Update scores display
+                scoresElement.textContent = `Team 1: ${getTeamScore(1)} | Team 2: ${getTeamScore(2)}`;
+
+                // Request next animation frame
+                requestAnimationFrame(draw);
+            }
+
+            function resetPuck() {
+                puck.x = canvas.width / 3;
+                puck.y = canvas.height / 3;
+            }
+
+            function updateScore(team) {
+                players.forEach(player => {
+                    if (player.team === team) {
+                        player.score += 1;
+                    }
+                });
+            }
+
+            function getTeamScore(team) {
+                let teamScore = 0;
+                players.forEach(player => {
+                    if (player.team === team) {
+                        teamScore += player.score;
+                    }
+                });
+                return teamScore;
+            }
+
+            // Start the game loop
+            draw();
+        });
+    </script>
+</body>
+
+</html>
